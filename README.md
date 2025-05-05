@@ -1,4 +1,4 @@
-# go-interview-homework
+# Go-interview-homework
 Golang interview homework: Raft election, RAID simulator &amp; Q&amp;A game
 
 # Go Project - Backend System Engineer (Golang)
