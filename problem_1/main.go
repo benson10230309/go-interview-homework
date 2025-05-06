@@ -14,16 +14,15 @@ type Question struct {
 	correct float32
 }
 
+var once sync.Once // only be executed once
+
 // generateQuestion creates a random math question
 func generateQuestion() Question {
-	source := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(source)
 
 	ops := []string{"+", "-", "*", "/"}
-	op := ops[r.Intn(len(ops))]
-	a := r.Intn(101)
-	b := r.Intn(101)
-
+	op := ops[rand.Intn(len(ops))]
+	a := rand.Intn(101)
+	b := rand.Intn(101)
 	var correct float32
 
 	switch op {
@@ -35,11 +34,10 @@ func generateQuestion() Question {
 		correct = float32(a * b)
 	case "/":
 		for b == 0 {
-			b = r.Intn(101) // avoid dividing by zero
+			b = rand.Intn(100) + 1 // avoid dividing by zero
 		}
 		correct = float32(a) / float32(b)
 	}
-
 	return Question{
 		a:       a,
 		b:       b,
@@ -50,36 +48,29 @@ func generateQuestion() Question {
 
 func raiseYourHandToAnswer(name string, answer Question, chAnswer chan string, chOther chan string, wg *sync.WaitGroup) {
 	defer wg.Done()
-
-	source := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(source)
 	didWin := false
-
-	time.Sleep(time.Duration(r.Intn(3)+1) * time.Second)
-
+	time.Sleep(time.Duration(rand.Intn(3)+1) * time.Second)
 	once.Do(func() { // only be executed once
 		chAnswer <- name
 		fmt.Println("Student", name, ": The answer ", answer.a, answer.op, answer.b, " is =", answer.correct)
 		didWin = true
 	})
-
 	// prevent winners from continuing to execute
 	if !didWin {
-		winner := <-chOther
-		fmt.Println("Student", name, ":", winner, ", you win")
+		congratulation(name, chOther)
 	}
-
 }
 
-var once sync.Once // only be executed once
+func congratulation(name string, chOther chan string) {
+	winner := <-chOther
+	fmt.Println("Student", name, ":", winner, ", you win")
+}
 
-func main() {
-	student := []string{"A", "B", "C", "D", "E"}
-
+func teacherAsk(student []string) {
 	chAnswer := make(chan string, 1)             // record winner
 	chOther := make(chan string, len(student)-1) // give everyone the name of the winner
 
-	var wg sync.WaitGroup // avoid other goroutine ending
+	var wg sync.WaitGroup
 
 	fmt.Println("Teacher: Guys, are you ready?")
 
@@ -100,4 +91,9 @@ func main() {
 	}
 
 	wg.Wait()
+}
+
+func main() {
+	student := []string{"A", "B", "C", "D", "E"}
+	teacherAsk(student)
 }
